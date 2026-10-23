@@ -257,14 +257,6 @@
 
           <label class="row">
             <span class="txt">
-              <strong>Lock profile (no removal)</strong>
-              <small>Blocks deleting the profile from Settings. Handy for kiosks, annoying for everyone else.</small>
-            </span>
-            <span class="sw"><input type="checkbox" id="locked" /><i></i></span>
-          </label>
-
-          <label class="row">
-            <span class="txt">
               <strong>Ignore web app manifest scope</strong>
               <small>Only matters if the site ships a manifest and you want the clip confined to the URL you typed.</small>
             </span>
@@ -278,7 +270,7 @@
           <div class="inner">
             <label class="field">
               <span class="lab">Organisation</span>
-              <input type="text" id="org" placeholder="Acme Inc." autocomplete="off" />
+              <input type="text" id="org" placeholder="ICC" autocomplete="off" />
             </label>
             <label class="field">
               <span class="lab">Identifier prefix</span>
@@ -287,7 +279,7 @@
             </label>
             <label class="field" style="margin-bottom:0">
               <span class="lab">Description / consent text</span>
-              <input type="text" id="desc" placeholder="Installs the My Site web clip." autocomplete="off" />
+              <input type="text" id="desc" placeholder="ICC Web Clipper Profile" autocomplete="off" />
             </label>
           </div>
         </details>
@@ -367,7 +359,7 @@
     clearIcon: $("#clearIcon"), iconTitle: $("#iconTitle"), iconSub: $("#iconSub"),
     size: $("#size"), fit: $("#fit"), bg: $("#bg"), bgWrap: $("#bgWrap"),
     fullscreen: $("#fullscreen"), precomposed: $("#precomposed"),
-    removable: $("#removable"), locked: $("#locked"), ignoreScope: $("#ignoreScope"),
+    removable: $("#removable"), locked: { checked: false, addEventListener: function () {} }, ignoreScope: $("#ignoreScope"),
     org: $("#org"), ident: $("#ident"), desc: $("#desc"),
     tileIcon: $("#tileIcon"), tileLabel: $("#tileLabel"), modeBadge: $("#modeBadge"),
     dl: $("#dl"), copy: $("#copy"), reset: $("#reset"),
