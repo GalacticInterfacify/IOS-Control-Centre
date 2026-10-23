@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>iOS Web Clip Generator</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box}
+  :root{
+    --bg:#f4f4f7; --panel:#ffffff; --panel2:#fafafc; --text:#15151a; --muted:#66666f;
+    --border:#e4e4ec; --accent:#6d4aff; --accent2:#8a70ff; --accentsoft:#f0ecff;
+    --track:#c9c9d4; --warn:#9a6100; --warnbg:#fff6e6; --ok:#12694a; --okbg:#e8f6ef;
+    --radius:14px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0e0e13; --panel:#17171e; --panel2:#1d1d26; --text:#f2f2f6; --muted:#9a9aa8;
+      --border:#2a2a36; --accentsoft:#231d3d; --track:#3a3a48;
+      --warn:#f0c274; --warnbg:#2c2213; --ok:#7ee0b4; --okbg:#12291f;
+    }
+  }
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--text); padding:26px 18px 70px;
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1140px;margin:0 auto}
+  header.top{display:flex;align-items:center;gap:14px;margin-bottom:20px}
+  .logo{
+    width:44px;height:44px;border-radius:13px;flex:none;display:grid;place-items:center;
+    background:linear-gradient(140deg,var(--accent),#a58cff);color:#fff;font-weight:800;font-size:20px;
+    box-shadow:0 6px 16px rgba(109,74,255,.28);
+  }
+  h1{font-size:20px;margin:0;letter-spacing:-.02em}
+  header.top p{margin:3px 0 0;color:var(--muted);font-size:13px}
+  .grid{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(310px,.92fr);gap:18px;align-items:start}
+  @media (max-width:900px){.grid{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+  .panel + .panel{margin-top:18px}
+  .panel h2{font-size:12px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:0 0 14px;font-weight:700}
+
+  .field{display:block;margin-bottom:15px}
+  .field .lab{display:block;font-size:13px;font-weight:650;margin-bottom:6px}
+  .field .hint{display:block;font-size:12px;color:var(--muted);margin-top:5px}
+  input[type=text],input[type=url],select,textarea{
+    width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);
+    background:var(--panel2);color:var(--text);font:inherit;font-size:14px;
+  }
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+  textarea{resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.45}
+  code{background:var(--panel2);border:1px solid var(--border);border-radius:5px;padding:1px 5px;font-size:11.5px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  @media (max-width:520px){.two,.three{grid-template-columns:1fr}}
+
+  .drop{
+    display:flex;gap:14px;align-items:center;padding:14px;border-radius:12px;
+    border:1.5px dashed var(--border);background:var(--panel2);transition:.16s;
+  }
+  .drop.over{border-color:var(--accent);background:var(--accentsoft)}
+  .thumb{
+    width:66px;height:66px;border-radius:15px;flex:none;overflow:hidden;display:grid;place-items:center;
+    background:var(--panel);border:1px solid var(--border);
+  }
+  .thumb img{width:100%;height:100%;display:block;object-fit:cover}
+  .drop .meta{flex:1;min-width:0}
+  .drop .meta strong{display:block;font-size:13.5px}
+  .drop .meta small{display:block;color:var(--muted);font-size:12px;margin-top:3px;word-break:break-word}
+  .dropbtns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+
+  .btn{
+    appearance:none;border:1px solid var(--border);background:var(--panel2);color:var(--text);
+    padding:9px 13px;border-radius:10px;font:inherit;font-size:13.5px;font-weight:650;cursor:pointer;transition:.15s;
+  }
+  .btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover:not(:disabled){background:var(--accent2);border-color:var(--accent2);color:#fff}
+  .btn:disabled{opacity:.42;cursor:not-allowed}
+  .btn.block{width:100%;justify-content:center}
+
+  .rows{margin-top:4px}
+  .row{display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid var(--border)}
+  .row:last-child{border-bottom:0}
+  .row .txt{flex:1;min-width:0}
+  .row .txt strong{display:block;font-size:13.5px;font-weight:650}
+  .row .txt small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+  .sw{position:relative;width:46px;height:28px;flex:none}
+  .sw input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer;z-index:2}
+  .sw i{position:absolute;inset:0;display:block;background:var(--track);border-radius:999px;transition:.18s}
+  .sw i::after{
+    content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;
+    background:#fff;transition:.18s;box-shadow:0 1px 3px rgba(0,0,0,.28);
+  }
+  .sw input:checked + i{background:var(--accent)}
+  .sw input:checked + i::after{transform:translateX(18px)}
+  .sw input:focus-visible + i{outline:2px solid var(--accent);outline-offset:2px}
+
+  details.adv{border-top:1px solid var(--border);margin-top:6px;padding-top:12px}
+  details.adv summary{cursor:pointer;font-size:13px;font-weight:650;color:var(--muted);list-style:none}
+  details.adv summary::-webkit-details-marker{display:none}
+  details.adv summary::before{content:"\25B8  ";color:var(--accent)}
+  details.adv[open] summary::before{content:"\25BE  "}
+  details.adv .inner{padding-top:14px}
+
+  .stage{display:flex;flex-direction:column;align-items:center;gap:12px}
+  .phone{
+    position:relative;width:236px;height:452px;border-radius:40px;padding:34px 16px 0;
+    border:9px solid #0b0a12;
+    background:
+      radial-gradient(120% 80% at 20% 0%, #3b2f63 0%, transparent 55%),
+      linear-gradient(165deg,#241d3a 0%,#100e1a 52%,#2a2145 100%);
+    box-shadow:0 22px 44px rgba(0,0,0,.34), inset 0 0 0 1px rgba(255,255,255,.06);
+    display:flex;flex-direction:column;align-items:center;
+  }
+  .notch{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:74px;height:18px;border-radius:999px;background:#08070d}
+  .tile{display:flex;flex-direction:column;align-items:center;gap:7px;width:84px}
+  .tile img{
+    width:68px;height:68px;border-radius:22.37%;display:block;
+    box-shadow:0 8px 16px rgba(0,0,0,.42);background:#222;
+  }
+  .tile span{
+    font-size:11px;color:#fff;max-width:84px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    text-shadow:0 1px 3px rgba(0,0,0,.7);
+  }
+  .badge{
+    font-size:12px;font-weight:650;padding:5px 11px;border-radius:999px;border:1px solid var(--border);
+    background:var(--panel2);color:var(--muted);
+  }
+  .badge.on{border-color:var(--accent);background:var(--accentsoft);color:var(--accent)}
+
+  .note{
+    display:none;margin-top:12px;padding:10px 12px;border-radius:10px;font-size:12.5px;
+    background:var(--warnbg);color:var(--warn);border:1px solid rgba(154,97,0,.22);
+  }
+  .note.show{display:block}
+  .note.ok{background:var(--okbg);color:var(--ok);border-color:rgba(18,105,74,.22)}
+
+  .actions{display:grid;gap:9px;margin-top:4px}
+  .steps{font-size:12.5px;color:var(--muted);margin:14px 0 0;padding-left:18px}
+  .steps li{margin-bottom:6px}
+  .steps strong{color:var(--text)}
+
+  #toast{
+    position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);
+    background:#15151a;color:#fff;padding:10px 16px;border-radius:999px;font-size:13px;font-weight:600;
+    opacity:0;pointer-events:none;transition:.22s;z-index:50;box-shadow:0 10px 26px rgba(0,0,0,.3);
+  }
+  #toast.show{opacity:1;transform:translate(-50%,0)}
+  #toast.warn{background:#8a5300}
+  #toast.ok{background:#12694a}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="logo">&#9678;</div>
+    <div>
+      <h1>iOS Web Clip Generator</h1>
+      <p>Build a <code>.mobileconfig</code> profile that drops a website onto the iPhone or iPad home screen.</p>
+    </div>
+  </header>
+
+  <div class="grid">
+
+    <!-- ================= LEFT COLUMN ================= -->
+    <div>
+      <section class="panel">
+        <h2>Web clip</h2>
+
+        <label class="field">
+          <span class="lab">Website URL</span>
+          <input type="text" id="url" placeholder="https://example.com" autocomplete="off" spellcheck="false" />
+          <span class="hint">Missing <code>https://</code> is added automatically.</span>
+        </label>
+
+        <label class="field">
+          <span class="lab">Home screen name</span>
+          <input type="text" id="label" maxlength="60" placeholder="My Site" autocomplete="off" />
+          <span class="hint">iOS shows roughly the first 12 characters under the icon before truncating.</span>
+        </label>
+
+        <div class="field">
+          <span class="lab">Icon</span>
+          <div class="drop" id="drop">
+            <div class="thumb" id="thumb"></div>
+            <div class="meta">
+              <strong id="iconTitle">No image yet</strong>
+              <small id="iconSub">Drag &amp; drop a PNG/JPG, paste from the clipboard, or leave empty for an auto-generated monogram.</small>
+            </div>
+          </div>
+          <input type="file" id="file" accept="image/*" hidden />
+          <div class="dropbtns">
+            <button class="btn" id="pick">Choose image&hellip;</button>
+            <button class="btn" id="clearIcon">Clear</button>
+          </div>
+          <span class="hint">Supply a square, opaque image. iOS applies its own rounded mask, so don't round the corners yourself.</span>
+        </div>
+
+        <div class="three">
+          <label class="field">
+            <span class="lab">Export size</span>
+            <select id="size">
+              <option value="180">180 &times; 180</option>
+              <option value="192">192 &times; 192</option>
+              <option value="256">256 &times; 256</option>
+              <option value="512" selected>512 &times; 512</option>
+              <option value="1024">1024 &times; 1024</option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="lab">Scaling</span>
+            <select id="fit">
+              <option value="cover" selected>Fill (crop)</option>
+              <option value="contain">Fit (pad)</option>
+            </select>
+          </label>
+          <label class="field" id="bgWrap">
+            <span class="lab">Pad colour</span>
+            <input type="text" id="bg" value="#6d4aff" spellcheck="false" />
+          </label>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Behaviour</h2>
+        <div class="rows">
+
+          <label class="row">
+            <span class="txt">
+              <strong>Fullscreen web app</strong>
+              <small>Runs standalone with no Safari chrome. Off = the icon simply opens the page in Safari.</small>
+            </span>
+            <span class="sw"><input type="checkbox" id="fullscreen" checked /><i></i></span>
+          </label>
+
+          <label class="row">
+            <span class="txt">
+              <strong>Precomposed icon (no gloss)</strong>
+              <small>Legacy key that suppressed the old reflective shine. Harmless on modern iOS.</small>
+            </span>
+            <span class="sw"><input type="checkbox" id="precomposed" checked /><i></i></span>
+          </label>
+
+          <label class="row">
+            <span class="txt">
+              <strong>User can delete the web clip</strong>
+              <small>Off pins the icon to the home screen until the whole profile is removed.</small>
+            </span>
+            <span class="sw"><input type="checkbox" id="removable" checked /><i></i></span>
+          </label>
+
+          <label class="row">
+            <span class="txt">
+              <strong>Lock profile (no removal)</strong>
+              <small>Blocks deleting the profile from Settings. Handy for kiosks, annoying for everyone else.</small>
+            </span>
+            <span class="sw"><input type="checkbox" id="locked" /><i></i></span>
+          </label>
+
+          <label class="row">
+            <span class="txt">
+              <strong>Ignore web app manifest scope</strong>
+              <small>Only matters if the site ships a manifest and you want the clip confined to the URL you typed.</small>
+            </span>
+            <span class="sw"><input type="checkbox" id="ignoreScope" /><i></i></span>
+          </label>
+
+        </div>
+
+        <details class="adv">
+          <summary>Advanced profile metadata</summary>
+          <div class="inner">
+            <label class="field">
+              <span class="lab">Organisation</span>
+              <input type="text" id="org" placeholder="Acme Inc." autocomplete="off" />
+            </label>
+            <label class="field">
+              <span class="lab">Identifier prefix</span>
+              <input type="text" id="ident" placeholder="com.example.webclip" autocomplete="off" spellcheck="false" />
+              <span class="hint">Reverse-DNS style. The inner payload gets <code>.&lt;slug&gt;</code> appended.</span>
+            </label>
+            <label class="field" style="margin-bottom:0">
+              <span class="lab">Description / consent text</span>
+              <input type="text" id="desc" placeholder="Installs the My Site web clip." autocomplete="off" />
+            </label>
+          </div>
+        </details>
+      </section>
+    </div>
+
+    <!-- ================= RIGHT COLUMN ================= -->
+    <div>
+      <section class="panel">
+        <h2>Home screen preview</h2>
+        <div class="stage">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="tile">
+              <img id="tileIcon" alt="" />
+              <span id="tileLabel">Web Clip</span>
+            </div>
+          </div>
+          <div class="badge" id="modeBadge">Standalone</div>
+        </div>
+        <div class="note" id="noteBox"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Export</h2>
+        <div class="actions">
+          <button class="btn primary block" id="dl">Download .mobileconfig</button>
+          <button class="btn block" id="copy">Copy plist XML</button>
+          <button class="btn block" id="reset">Reset everything</button>
+        </div>
+
+        <ol class="steps">
+          <li>Get the file onto the device and open it in <strong>Safari</strong> (AirDrop, email attachment, or a local web server).</li>
+          <li>iOS hands it to <strong>Settings &rarr; General &rarr; VPN &amp; Device Management</strong>. Older versions show &ldquo;Profile Downloaded&rdquo; at the top of Settings instead.</li>
+          <li>Tap <strong>Install</strong>, enter the passcode, confirm. The icon lands on the home screen.</li>
+          <li>The profile is unsigned, so iOS flags it as &ldquo;Not Signed&rdquo; &mdash; expected for locally built clips.</li>
+        </ol>
+
+        <details class="adv">
+          <summary>View the generated plist</summary>
+          <div class="inner">
+            <textarea id="xml" rows="14" readonly spellcheck="false"></textarea>
+            <span class="hint" id="xmlHint">The base64 icon blob is collapsed here to keep things readable; the downloaded file contains it in full.</span>
+          </div>
+        </details>
+
+        <details class="adv">
+          <summary>Bonus: site-side meta tags</summary>
+          <div class="inner">
+            <span class="hint" style="margin-bottom:10px;display:block">
+              Put these in the site's <code>&lt;head&gt;</code> so visitors who use Safari's own
+              <em>Share &rarr; Add to Home Screen</em> get the same icon and name.
+            </span>
+            <textarea id="meta" rows="5" readonly spellcheck="false"></textarea>
+            <div class="dropbtns">
+              <button class="btn" id="copyMeta">Copy meta tags</button>
+            </div>
+          </div>
+        </details>
+      </section>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var $ = function (s) { return document.querySelector(s); };
+
+  var el = {
+    url: $("#url"), label: $("#label"),
+    drop: $("#drop"), thumb: $("#thumb"), file: $("#file"), pick: $("#pick"),
+    clearIcon: $("#clearIcon"), iconTitle: $("#iconTitle"), iconSub: $("#iconSub"),
+    size: $("#size"), fit: $("#fit"), bg: $("#bg"), bgWrap: $("#bgWrap"),
+    fullscreen: $("#fullscreen"), precomposed: $("#precomposed"),
+    removable: $("#removable"), locked: $("#locked"), ignoreScope: $("#ignoreScope"),
+    org: $("#org"), ident: $("#ident"), desc: $("#desc"),
+    tileIcon: $("#tileIcon"), tileLabel: $("#tileLabel"), modeBadge: $("#modeBadge"),
+    dl: $("#dl"), copy: $("#copy"), reset: $("#reset"),
+    xml: $("#xml"), meta: $("#meta"), copyMeta: $("#copyMeta"),
+    noteBox: $("#noteBox"), toast: $("#toast")
+  };
+
+  var iconImg = null;       // decoded HTMLImageElement or null
+  var iconName = "";        // original filename
+  var identDirty = false;   // did the user type their own identifier?
+  var renderTimer = null;
+  var toastTimer = null;
+
+  /* ---------------- utilities ---------------- */
+
+  function slug(s) {
+    var out = String(s || "").toLowerCase()
+      .normalize ? String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : String(s || "").toLowerCase();
+    out = out.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+    return out || "webclip";
+  }
+
+  function esc(s) {
+    return String(s == null ? "" : s)
+      .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, "")
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  function tf(v) { return v ? "<true/>" : "<false/>"; }
+
+  function uuid() {
+    if (window.crypto && typeof window.crypto.randomUUID === "function") {
+      return window.crypto.randomUUID().toUpperCase();
+    }
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+      var r = (Math.random() * 16) | 0;
+      return (c === "x" ? r : ((r & 0x3) | 0x8)).toString(16);
+    }).toUpperCase();
+  }
+
+  function normalizeUrl(raw) {
+    var v = String(raw || "").trim();
+    if (!v) return null;
+    if (!/^[a-zA-Z][a-zA-Z0-9+.\-]*:\/\//.test(v)) v = "https://" + v;
+    try {
+      var u = new URL(v);
+      if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+      if (!u.hostname || u.hostname.indexOf(".") === -1) return null;
+      return u.href;
+    } catch (e) { return null; }
+  }
+
+  function toast(msg, kind) {
+    el.toast.textContent = msg;
+    el.toast.className = "show " + (kind || "");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.toast.className = kind || ""; }, 2500);
+  }
+
+  function note(msg, ok) {
+    if (!msg) { el.noteBox.className = "note"; el.noteBox.textContent = ""; return; }
+    el.noteBox.textContent = msg;
+    el.noteBox.className = "note show" + (ok ? " ok" : "");
+  }
+
+  /* ---------------- icon rendering ---------------- */
+
+  function hueFor(str) {
+    var h = 2166136261;
+    for (var i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return Math.abs(h) % 360;
+  }
+
+  function initials(name) {
+    var parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return "WC";
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+  }
+
+  function drawIcon(size) {
+    var c = document.createElement("canvas");
+    c.width = c.height = size;
+    var x = c.getContext("2d");
+    x.imageSmoothingEnabled = true;
+    x.imageSmoothingQuality = "high";
+
+    var fit = el.fit.value;
+    var pad = (el.bg.value || "").trim() || "#6d4aff";
+
+    if (iconImg && iconImg.naturalWidth) {
+      var iw = iconImg.naturalWidth, ih = iconImg.naturalHeight;
+      if (fit === "cover") {
+        var s = Math.max(size / iw, size / ih);
+        var w = iw * s, h = ih * s;
+        x.drawImage(iconImg, (size - w) / 2, (size - h) / 2, w, h);
+      } else {
+        x.fillStyle = pad;
+        x.fillRect(0, 0, size, size);
+        var s2 = Math.min(size / iw, size / ih) * 0.82;
+        var w2 = iw * s2, h2 = ih * s2;
+        x.drawImage(iconImg, (size - w2) / 2, (size - h2) / 2, w2, h2);
+      }
+    } else {
+      var name = el.label.value.trim() || "Web Clip";
+      var hue = hueFor(name.toLowerCase());
+      var g = x.createLinearGradient(0, 0, size, size);
+      g.addColorStop(0, "hsl(" + hue + ", 74%, 61%)");
+      g.addColorStop(1, "hsl(" + ((hue + 46) % 360) + ", 69%, 43%)");
+      x.fillStyle = g;
+      x.fillRect(0, 0, size, size);
+
+      x.fillStyle = "rgba(255,255,255,0.96)";
+      x.font = "700 " + Math.round(size * 0.38) + "px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+      x.textAlign = "center";
+      x.textBaseline = "middle";
+      x.fillText(initials(name), size / 2, size * 0.53);
+    }
+
+    return c.toDataURL("image/png");
+  }
+
+  /* ---------------- plist generation ---------------- */
+
+  function buildXML(withIcon) {
+    var raw = el.url.value;
+    var url = normalizeUrl(raw);
+    var name = el.label.value.trim() || (url ? new URL(url).hostname.replace(/^www\./, "") : "Web Clip");
+
+    var prefix = el.ident.value.trim() || (url ? "com." + new URL(url).hostname.replace(/^www\./, "").split(".").reverse().join(".") + ".webclip" : "com.example.webclip");
+    prefix = prefix.replace(/[^A-Za-z0-9.\-]/g, "");
+    var outerId = prefix;
+    var innerId = prefix + "." + slug(name);
+
+    var org = el.org.value.trim();
+    var desc = el.desc.value.trim() || ("Installs the " + name + " web clip.");
+    var iconData = drawIcon(parseInt(el.size.value, 10) || 512);
+    var b64 = iconData.split(",")[1] || "";
+
+    var L = [];
+    L.push('<?xml version="1.0" encoding="UTF-8"?>');
+    L.push('<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">');
+    L.push('<plist version="1.0">');
+    L.push('<dict>');
+    L.push('\t<key>PayloadContent</key>');
+    L.push('\t<array>');
+    L.push('\t\t<dict>');
+    L.push('\t\t\t<key>FullScreen</key>');
+    L.push('\t\t\t' + tf(el.fullscreen.checked));
+    L.push('\t\t\t<key>Icon</key>');
+    L.push('\t\t\t<data>' + (withIcon ? b64 : "BASE64ICONDATA") + '</data>');
+    L.push('\t\t\t<key>IgnoreManifestScope</key>');
+    L.push('\t\t\t' + tf(el.ignoreScope.checked));
+    L.push('\t\t\t<key>IsRemovable</key>');
+    L.push('\t\t\t' + tf(el.removable.checked));
+    L.push('\t\t\t<key>Label</key>');
+    L.push('\t\t\t<string>' + esc(name) + '</string>');
+    L.push('\t\t\t<key>PayloadDescription</key>');
+    L.push('\t\t\t<string>' + esc(desc) + '</string>');
+    L.push('\t\t\t<key>PayloadDisplayName</key>');
+    L.push('\t\t\t<string>' + esc(name) + '</string>');
+    L.push('\t\t\t<key>PayloadIdentifier</key>');
+    L.push('\t\t\t<string>' + esc(innerId) + '</string>');
+    L.push('\t\t\t<key>PayloadType</key>');
+    L.push('\t\t\t<string>com.apple.webClip.managed</string>');
+    L.push('\t\t\t<key>PayloadUUID</key>');
+    L.push('\t\t\t<string>' + uuid() + '</string>');
+    L.push('\t\t\t<key>PayloadVersion</key>');
+    L.push('\t\t\t<integer>1</integer>');
+    L.push('\t\t\t<key>Precomposed</key>');
+    L.push('\t\t\t' + tf(el.precomposed.checked));
+    L.push('\t\t\t<key>URL</key>');
+    L.push('\t\t\t<string>' + esc(url || "") + '</string>');
+    L.push('\t\t</dict>');
+    L.push('\t</array>');
+    L.push('\t<key>PayloadDescription</key>');
+    L.push('\t<string>' + esc(desc) + '</string>');
+    L.push('\t<key>PayloadDisplayName</key>');
+    L.push('\t<string>' + esc(name) + '</string>');
+    L.push('\t<key>PayloadIdentifier</key>');
+    L.push('\t<string>' + esc(outerId) + '</string>');
+    if (org) {
+      L.push('\t<key>PayloadOrganization</key>');
+      L.push('\t<string>' + esc(org) + '</string>');
+    }
+    L.push('\t<key>PayloadRemovalDisallowed</key>');
+    L.push('\t' + tf(el.locked.checked));
+    L.push('\t<key>PayloadType</key>');
+    L.push('\t<string>Configuration</string>');
+    L.push('\t<key>PayloadUUID</key>');
+    L.push('\t<string>' + uuid() + '</string>');
+    L.push('\t<key>PayloadVersion</key>');
+    L.push('\t<integer>1</integer>');
+    L.push('</dict>');
+    L.push('</plist>');
+    L.push('');
+    return L.join("\n");
+  }
+
+  function buildMeta(url, name, iconData) {
+    var host = "";
+    try { host = new URL(url).origin; } catch (e) {}
+    return [
+      '<link rel="apple-touch-icon" sizes="180x180" href="' + host + '/apple-touch-icon.png">',
+      '<link rel="apple-touch-icon" sizes="512x512" href="' + host + '/apple-touch-icon-512.png">',
+      '<link rel="apple-touch-icon-precomposed" href="' + host + '/apple-touch-icon.png">',
+      '<meta name="apple-mobile-web-app-title" content="' + esc(name) + '">',
+      '<meta name="apple-mobile-web-app-capable" content="' + (el.fullscreen.checked ? "yes" : "no") + '">',
+      '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">',
+      '<meta name="theme-color" content="' + (el.bg.value.trim() || "#6d4aff") + '">'
+    ].join("\n");
+  }
+
+  /* ---------------- refresh pipeline ---------------- */
+
+  function refresh(light) {
+    var url = normalizeUrl(el.url.value);
+    var name = el.label.value.trim() || (url ? new URL(url).hostname.replace(/^www\./, "") : "Web Clip");
+
+    // identifier auto-fill
+    if (!identDirty && url) {
+      var host = new URL(url).hostname.replace(/^www\./, "");
+      el.ident.value = "com." + host.split(".").reverse().join(".") + ".webclip";
+    }
+
+    // preview
+    var iconData = drawIcon(parseInt(el.size.value, 10) || 512);
+    el.tileIcon.src = iconData;
+    el.tileLabel.textContent = name;
+
+    el.modeBadge.textContent = el.fullscreen.checked ? "Standalone" : "Opens in Safari";
+    el.modeBadge.className = "badge" + (el.fullscreen.checked ? " on" : "");
+
+    // pad colour only matters when fitting
+    el.bgWrap.style.opacity = (el.fit.value === "contain" && iconImg) ? "1" : ".45";
+
+    // warnings
+    var msgs = [];
+    if (!el.url.value.trim()) {
+      msgs.push("Enter a URL to generate the profile.");
+    } else if (!url) {
+      msgs.push("That doesn't look like a valid http(s) URL.");
+    } else if (url.indexOf("http://") === 0) {
+      msgs.push("Plain http:// is blocked by App Transport Security on modern iOS. Use https:// or the clip may fail to load.");
+    }
+    if (el.locked.checked) {
+      msgs.push("The profile is locked: it can only be removed by erasing the device or reinstalling the OS.");
+    }
+    if (!el.removable.checked) {
+      msgs.push("With deletion disabled, the icon stays put until the profile itself is removed.");
+    }
+    if (!msgs.length) {
+      note("Ready. Download the profile and open it in Safari on the device.", true);
+    } else {
+      note(msgs.join(" "), !!(url && url.indexOf("http://") !== 0 && !el.locked.checked && el.removable.checked));
+    }
+
+    // outputs
+    if (!light) {
+      el.xml.value = buildXML(false);
+      el.meta.value = buildMeta(url || "https://example.com", name, iconData);
+    }
+
+    el.dl.disabled = !url;
+    el.copy.disabled = !url;
+  }
+
+  function scheduleRefresh(light) {
+    clearTimeout(renderTimer);
+    renderTimer = setTimeout(function () { refresh(light); }, 110);
+  }
+
+  /* ---------------- icon intake ---------------- */
+
+  function loadImageFromBlob(blob, filename) {
+    if (!blob || blob.type.indexOf("image/") !== 0) {
+      toast("That file isn't an image.", "warn");
+      return;
+    }
+    var fr = new FileReader();
+    fr.onload = function () {
+      var img = new Image();
+      img.onload = function () {
+        iconImg = img;
+        iconName = filename || "pasted-image";
+        el.thumb.innerHTML = "";
+        var t = document.createElement("img");
+        t.src = img.src;
+        t.alt = "";
+        el.thumb.appendChild(t);
+        el.iconTitle.textContent = iconName;
+        el.iconSub.textContent = img.naturalWidth + " \u00d7 " + img.naturalHeight + " px \u00b7 " +
+          (blob.type || "image") + " \u00b7 " + Math.max(1, Math.round(blob.size / 1024)) + " KB";
+        refresh(false);
+      };
+      img.onerror = function () { toast("Couldn't decode that image.", "warn"); };
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(blob);
+  }
+
+  el.pick.addEventListener("click", function () { el.file.click(); });
+
+  el.file.addEventListener("change", function () {
+    if (el.file.files && el.file.files[0]) loadImageFromBlob(el.file.files[0], el.file.files[0].name);
+    el.file.value = "";
+  });
+
+  el.clearIcon.addEventListener("click", function () {
+    iconImg = null; iconName = "";
+    el.thumb.innerHTML = "";
+    el.iconTitle.textContent = "No image yet";
+    el.iconSub.textContent = "Drag & drop a PNG/JPG, paste from the clipboard, or leave empty for an auto-generated monogram.";
+    refresh(false);
+  });
+
+  ["dragenter", "dragover"].forEach(function (ev) {
+    el.drop.addEventListener(ev, function (e) {
+      e.preventDefault(); e.stopPropagation();
+      el.drop.classList.add("over");
+    });
+  });
+  ["dragleave", "drop"].forEach(function (ev) {
+    el.drop.addEventListener(ev, function (e) {
+      e.preventDefault(); e.stopPropagation();
+      if (ev === "dragleave" && el.drop.contains(e.relatedTarget)) return;
+      el.drop.classList.remove("over");
+    });
+  });
+  el.drop.addEventListener("drop", function (e) {
+    var dt = e.dataTransfer;
+    if (!dt) return;
+    var f = dt.files && dt.files[0];
+    if (f) { loadImageFromBlob(f, f.name); return; }
+    var item = dt.items && dt.items[0];
+    if (item && item.kind === "file") loadImageFromBlob(item.getAsFile(), "dropped-image");
+  });
+
+  // paste anywhere on the page
+  document.addEventListener("paste", function (e) {
+    var target = e.target;
+    if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
+    var items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].type && items[i].type.indexOf("image/") === 0) {
+        e.preventDefault();
+        loadImageFromBlob(items[i].getAsFile(), "pasted-image");
+        toast("Icon pasted.", "ok");
+        return;
+      }
+    }
+  });
+
+  /* ---------------- wiring ---------------- */
+
+  ["input", "change"].forEach(function (ev) {
+    [el.url, el.label, el.size, el.fit, el.bg,
+     el.fullscreen, el.precomposed, el.removable, el.locked, el.ignoreScope,
+     el.org, el.desc].forEach(function (node) {
+      node.addEventListener(ev, function () { scheduleRefresh(ev === "change"); });
+    });
+  });
+
+  el.ident.addEventListener("input", function () {
+    identDirty = el.ident.value.trim().length > 0;
+    scheduleRefresh(true);
+  });
+
+  el.dl.addEventListener("click", function () {
+    var url = normalizeUrl(el.url.value);
+    if (!url) { toast("Fix the URL first.", "warn"); return; }
+    var name = el.label.value.trim() || new URL(url).hostname.replace(/^www\./, "");
+    var xml = buildXML(true);
+    var blob = new Blob([xml], { type: "application/x-apple-aspen-config" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = slug(name) + ".mobileconfig";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+    toast("Profile downloaded.", "ok");
+  });
+
+  el.copy.addEventListener("click", function () {
+    var xml = buildXML(true);
+    copyText(xml, "plist XML copied.");
+  });
+
+  el.copyMeta.addEventListener("click", function () {
+    copyText(el.meta.value, "Meta tags copied.");
+  });
+
+  function copyText(text, okMsg) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        toast(okMsg, "ok");
+      }).catch(function () {
+        fallbackCopy(text, okMsg);
+      });
+    } else {
+      fallbackCopy(text, okMsg);
+    }
+  }
+
+  function fallbackCopy(text, okMsg) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.top = "-2000px";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); toast(okMsg, "ok"); }
+    catch (err) { toast("Copy failed \u2014 select the text manually.", "warn"); }
+    document.body.removeChild(ta);
+  }
+
+  el.reset.addEventListener("click", function () {
+    el.url.value = ""; el.label.value = ""; el.org.value = ""; el.desc.value = "";
+    el.ident.value = ""; identDirty = false;
+    el.size.value = "512"; el.fit.value = "cover"; el.bg.value = "#6d4aff";
+    el.fullscreen.checked = true; el.precomposed.checked = true;
+    el.removable.checked = true; el.locked.checked = false; el.ignoreScope.checked = false;
+    iconImg = null; iconName = "";
+    el.thumb.innerHTML = "";
+    el.iconTitle.textContent = "No image yet";
+    el.iconSub.textContent = "Drag & drop a PNG/JPG, paste from the clipboard, or leave empty for an auto-generated monogram.";
+    refresh(false);
+    toast("Cleared.");
+  });
+
+  /* ---------------- boot ---------------- */
+
+  el.url.value = "https://proton.me/lumo";
+  el.label.value = "Lumo";
+  refresh(false);
+})();
+</script>
+</body>
+</html>
