@@ -105,7 +105,7 @@
     <h1>Upload and Mask an Image</h1>
     <input type="file" id="imageUpload" accept="image/*">
     <canvas id="canvas"></canvas>
-    <button onclick="openInShortcuts()">Save to photos</button>
+    <button onclick="openInShortcuts()">Export</button>
     <button onclick="window.open('shortcuts://run-shortcut?name=App Store -> Circle Icon')">Use app store icon instead</button>
     <br>
     <button onclick="window.location.href = 'index.html'">🏠</button>
@@ -177,7 +177,7 @@
 
     function openInShortcuts() {
       const base64Result = canvas.toDataURL().split(',')[1]; 
-      const shortcutURL = `shortcuts://run-shortcut?name=iconmaker&input=${encodeURIComponent(base64Result)}`;
+      const shortcutURL = `shortcuts://run-shortcut?name=TISSICC-compat-sys&input=${encodeURIComponent(base64Result)}`;
 
       window.location.href = shortcutURL;
       
